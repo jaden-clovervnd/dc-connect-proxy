@@ -40,7 +40,7 @@ curl http://localhost:8787/health
 |---|---|
 | `GET /health` | `{"ok":true}` — 앱의 연결 테스트가 이걸 봅니다 |
 | `GET /api/list?id=<갤러리>&page=1&mode=all\|recommend` | 글 목록 (`mode=recommend` = 개념글) |
-| `GET /api/post?id=<갤러리>&no=<글번호>` | 제목·본문·이미지 목록·댓글 |
+| `GET /api/post?id=<갤러리>&no=<글번호>` | 제목·본문·이미지 목록·댓글(대댓글 포함) |
 | `GET /img?url=<디시 이미지 URL>` | 원본 이미지 바이트 + CORS (핫링크 우회) |
 
 환경변수: `PORT`(기본 8787), `GALLERY`(기본 `automata`).
@@ -120,7 +120,8 @@ sudo systemctl enable --now dc-connect-proxy
 | 앱에서 "연결할 수 없음" | 서버가 떠 있는지 (`curl .../health`), 주소 오타, 폰이 같은 tailnet인지 |
 | 목록은 되는데 이미지만 안 뜸 | `/img` 응답 확인 — 디시가 이미지 URL 형식을 바꿨을 수 있음 |
 | 갑자기 전부 빈 목록 | 디시 HTML 구조 변경. 셀렉터는 전부 `src/dcinside.js` 한 파일에 있습니다 |
-| 댓글이 항상 0 | 모바일 페이지의 JSON-LD 형식 변경 — 같은 파일에서 파싱 |
+| 댓글이 적게 나옴 | `.all-comment-lst` 마크업 변경. 페이지 HTML을 파싱하므로 셀렉터만 고치면 됩니다 |
+| 댓글 100개 이상인 글 | 모바일 페이지가 첫 ~99개만 싣습니다. 나머지는 별도 요청이 필요합니다 |
 
 ## 구조
 

@@ -90,8 +90,18 @@ export async function getPost(galleryId, no) {
   $body.find('script,style,.adv,.ad').remove();
   const bodyText = clean($body.text());
 
-  // Comments: parsed from the JSON-LD DiscussionForumPosting block.
-  const comments = parseJsonLdComments(html);
+  // Comments: read from the rendered list, NOT the JSON-LD block.
+  //
+  // The page ships both, but the JSON-LD `comment` array only carries top-level
+  // comments — every reply is missing. A post showing "댓글 7" came back with 2.
+  // The `.all-comment-lst` markup has all of them, replies included, so parse
+  // that and keep the JSON-LD only as a fallback if the markup ever changes.
+  const domComments = parseListComments($);
+  const comments = domComments.length ? domComments : parseJsonLdComments(html);
+
+  // True total as the page itself reports it — trust this over comments.length,
+  // which can lag if dcinside paginates a very long thread.
+  const reported = Number($('#reple_totalCnt').attr('value')) || 0;
 
   return {
     galleryId,
@@ -101,10 +111,43 @@ export async function getPost(galleryId, no) {
     date,
     bodyText,
     images,
-    commentCount: comments.length,
+    commentCount: reported || comments.length,
     comments,
     url,
   };
+}
+
+/**
+ * Comments from the rendered `.all-comment-lst` markup.
+ *
+ * Each <li> is one comment; replies carry `comment-add` in the class and their
+ * text starts with `@대상`. We keep that marker — on a 576px glasses line it is
+ * the only thing distinguishing a reply from a new comment.
+ *
+ * A dccon (sticker) comment carries an `img.written_dccon` and often no text at
+ * all. The glasses can't render it, but dropping the row would make the thread
+ * skip a beat and the count disagree with the page, so it becomes `[디시콘]`.
+ *
+ * Deleted rows and injected ads have neither text nor a dccon, and are skipped.
+ */
+function parseListComments($) {
+  const out = [];
+  $('.all-comment-lst > li').each((_i, el) => {
+    const $li = $(el);
+    const body = clean($li.find('p.txt').text());
+    const dccon = $li.find('img.written_dccon').length > 0;
+    const text = dccon ? (body ? `${body} [디시콘]` : '[디시콘]') : body;
+    if (!text) return; // deleted comment or an injected ad row
+    // .nick holds a trailing <span class="nicknum"> counter — drop it.
+    const author = clean($li.find('.nick').clone().children('.nicknum').remove().end().text());
+    out.push({
+      author,
+      text,
+      date: clean($li.find('.date').text()),
+      reply: /comment-add/.test($li.attr('class') || ''),
+    });
+  });
+  return out;
 }
 
 function parseJsonLdComments(html) {
