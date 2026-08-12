@@ -4,7 +4,7 @@
 Node 20+ 만 있으면 되고, 네이티브 의존성이 없어서 어디서든 1분이면 뜹니다.
 
 ```bash
-git clone https://github.com/<owner>/dc-connect-proxy.git
+git clone https://github.com/jaden-clovervnd/dc-connect-proxy.git
 cd dc-connect-proxy
 npm install
 npm start          # → http://localhost:8787
